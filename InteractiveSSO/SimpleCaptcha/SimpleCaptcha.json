@@ -1,0 +1,274 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SimpleCaptcha",
+    "version": "1.2.0",
+    "summary": "Simple Captcha System for InteractiveSSO",
+    "description": "",
+    "contact": {
+      "name": "InteractivePlus",
+      "url": "https://github.com/InteractivePlus"
+    },
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://captcha.sso.interactiveplus.org/v1/",
+      "description": "Mainline"
+    }
+  ],
+  "paths": {
+    "/captcha": {
+      "get": {
+        "summary": "[Client] Get New Captcha",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "Please use the error code returned in JSON to check if succeeded. ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errorCode": {
+                      "description": "|ID|Meaning|\n|--|-------|\n|0|No Error|\n|1|Unknown Error|\n|20|Parameter Error|",
+                      "enum": [
+                        0,
+                        1,
+                        20
+                      ],
+                      "type": "integer"
+                    },
+                    "errorDescription": {
+                      "type": "string",
+                      "description": "Description of the error(only when errorCode != 0)"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CaptchaInfo"
+                    }
+                  },
+                  "required": [
+                    "errorCode"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "new-captcha",
+        "description": "Generate a new captcha challenge",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "scope",
+            "description": "Scope for this new captcha",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/captcha/{captchaId}/submitResult": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "captchaId",
+          "in": "path",
+          "required": true,
+          "description": "captchaId of the submitting captcha"
+        }
+      ],
+      "get": {
+        "summary": "[Client] Submit Captcha",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "Please use errorCode to check if the operation is successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errorCode": {
+                      "type": "integer",
+                      "enum": [
+                        0,
+                        1,
+                        2,
+                        14,
+                        20
+                      ],
+                      "description": "|ID|Meaning|\n|--|-------|\n|0|No Error|\n|1|Unknown Error|\n|2|Captcha Does not exist|\n|14|Phrase does not match|\n|20|Parameter Error|"
+                    },
+                    "errorDescription": {
+                      "type": "string",
+                      "description": "Description of the error(only when errorCode != 0)"
+                    }
+                  },
+                  "required": [
+                    "errorCode"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-captcha-captchaId",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "phrase",
+            "description": "Answer for this captcha challenge"
+          }
+        ]
+      }
+    },
+    "/captcha/{captchaId}/submitStatus": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "captchaId",
+          "in": "path",
+          "required": true,
+          "description": "captchaId being checked"
+        }
+      ],
+      "get": {
+        "summary": "[Server] Check Captcha Submission Status",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "Please use errorCode to check if the operation is successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "errorCode": {
+                      "type": "integer",
+                      "enum": [
+                        0,
+                        1,
+                        2,
+                        14,
+                        20
+                      ],
+                      "description": "|ID|Meaning|\n|--|-------|\n|0|No Error|\n|1|Unknown Error|\n|2|Captcha Does not exist|\n|14|secret_phrase does not match|\n|20|Parameter Error|"
+                    },
+                    "errorDescription": {
+                      "type": "string",
+                      "description": "Description of the error(only when errorCode != 0)"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Only present when errorCode != 0",
+                      "properties": {
+                        "submitSuccess": {
+                          "type": "boolean",
+                          "description": "a true in this value indicates that if the client has submitted answer for the captcha and the submission is successful"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "scope of this captcha, declared by the client at the generate captcha api call"
+                        }
+                      },
+                      "required": [
+                        "submitSuccess",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "errorCode"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-captcha-captchaId-submitStatus",
+        "description": "Used by server to query the submission status of a captcha",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "secret_phrase",
+            "description": "Secret shared between SSO service and captcha service (so this API does not get used by 3rd party)"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CaptchaInfo": {
+        "title": "CaptchaInfo",
+        "type": "object",
+        "description": "Returned model when getting a new captcha",
+        "properties": {
+          "captchaId": {
+            "type": "string",
+            "format": "hexstring",
+            "description": "id for the captcha"
+          },
+          "expireTime ": {
+            "type": "integer",
+            "format": "int32",
+            "description": "UTC Timestamp when this captcha will expire"
+          },
+          "captchaData": {
+            "$ref": "#/components/schemas/CaptchaData"
+          }
+        },
+        "required": [
+          "captchaId",
+          "expireTime ",
+          "captchaData"
+        ]
+      },
+      "CaptchaData": {
+        "title": "CaptchaData",
+        "type": "object",
+        "description": "Includes data for the captcha",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "description": "Width of the captcha image in px"
+          },
+          "height": {
+            "type": "integer",
+            "description": "height of the captcha in px"
+          },
+          "jpegBase64": {
+            "type": "string",
+            "description": "base64 encoded jpeg data"
+          },
+          "phraseLen": {
+            "type": "integer",
+            "description": "length of the phrase(answer) of the captcha\n"
+          }
+        },
+        "required": [
+          "width",
+          "height",
+          "jpegBase64",
+          "phraseLen"
+        ]
+      }
+    }
+  }
+}
