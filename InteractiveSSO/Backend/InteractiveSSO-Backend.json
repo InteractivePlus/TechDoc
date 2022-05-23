@@ -1,0 +1,1615 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "InteractiveSSO",
+    "version": "0.0.1",
+    "summary": "InteractiveSSO API Definition",
+    "description": "This is the api definition file for InteractivePlus's InteractiveSSO",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "contact": {
+      "name": "InteractivePlus",
+      "url": "https://github.com/InteractivePlus"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://sso.interactiveplus.org/v1",
+      "description": "Mainline"
+    }
+  ],
+  "paths": {
+    "/usersystem/users": {
+      "post": {
+        "summary": "Create New User",
+        "tags": [
+          "Captcha-Required"
+        ],
+        "operationId": "create-user",
+        "responses": {
+          "201": {
+            "description": "Register Successful, please help user verify his/her email & phone number   \n\n**Note that emailMethod and phoneMethod will only be sent if email/phone is in the query parameter**",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "emailMethod": {
+                      "$ref": "#/components/schemas/CommunicationMethod"
+                    },
+                    "phoneMethod": {
+                      "$ref": "#/components/schemas/CommunicationMethod"
+                    },
+                    "uid": {
+                      "type": [
+                        "string",
+                        "integer"
+                      ],
+                      "description": "created UID"
+                    }
+                  },
+                  "required": [
+                    "uid"
+                  ]
+                },
+                "examples": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conflictItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "phone",
+                          "email",
+                          "displayName"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "conflictItems"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Try to register new user",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 50,
+                    "description": "Display Name of the new user"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
+                    "minLength": 3,
+                    "maxLength": 50,
+                    "description": "New User's Email, either email or phone must be present"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "format": "E164",
+                    "pattern": "^\\+?[1-9]\\d{1,14}$",
+                    "description": "New User's Phone parsed into E164, either email or phone must be present"
+                  },
+                  "area": {
+                    "type": "string",
+                    "description": "ISO 3166-1 alpha-2 codes"
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "2 letter ISO 639-1 codes"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Password of new user",
+                    "minLength": 12,
+                    "maxLength": 50
+                  },
+                  "preferredPhoneMethod": {
+                    "$ref": "#/components/schemas/CommunicationMethodPhoneOnly"
+                  }
+                },
+                "required": [
+                  "displayName",
+                  "password"
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "parameters": [],
+      "get": {
+        "summary": "Admin Get User List",
+        "operationId": "get-usersystem-users",
+        "responses": {
+          "200": {
+            "description": "Successful.   \nEvery field would be present.   \nNote that permission and setting-wise, it will only display the user's custom settings (some values might be null)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "description": "This can be empty tho...if nothing is found",
+                  "items": {
+                    "$ref": "#/components/schemas/CompleteUserInfo"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized\n(When client offers no authorization)"
+          },
+          "403": {
+            "description": "Forbidden\n(When credential provided by client does not have permission to do...)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "",
+        "security": [
+          {
+            "userToken": []
+          },
+          {
+            "oauth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            },
+            "in": "query",
+            "name": "displayNamePartial",
+            "description": "partial display name to be searched"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "emailPartial",
+            "description": "partial email to be searched"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "phonePartial",
+            "description": "partial phone number (in E164) to be searched"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minLength": 0,
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "limit",
+            "description": "limit on number of results (if empty then there would be no limit)"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          }
+        ]
+      }
+    },
+    "/usersystem/verification/verifyEmail": {
+      "get": {
+        "summary": "Verify User Email Address",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "description": "User's email, used to display or prompt login?"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 50,
+                      "description": "User's display name"
+                    }
+                  },
+                  "required": [
+                    "email",
+                    "displayName"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden (Verification Code is WRONG)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "verify-user-email",
+        "description": "This place is where frontend communicates with the backend...",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 50,
+              "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
+              "format": "email"
+            },
+            "in": "query",
+            "name": "verificationCode",
+            "description": "Verification Code to be used",
+            "required": true
+          }
+        ]
+      },
+      "parameters": [],
+      "post": {
+        "summary": "Send New Email Verification Code",
+        "operationId": "resend-verify-email",
+        "responses": {
+          "201": {
+            "description": "Created (Email sent)"
+          },
+          "400": {
+            "description": "Bad Request (request is bad or the email is already verified, or if the email is not in the system)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "Resends the email for the user to verify email (previously-sent verification codes are omitted).",
+        "parameters": [],
+        "tags": [
+          "Captcha-Required"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
+                    "minLength": 3,
+                    "maxLength": 50,
+                    "description": "Email address that we want to resend to"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usersystem/verification/verifyPhone": {
+      "get": {
+        "summary": "Verify User Phone Number",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "phone": {
+                      "type": "string",
+                      "description": "User's phone number, used to display or prompt login?"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 50,
+                      "description": "User's display name"
+                    }
+                  },
+                  "required": [
+                    "phone",
+                    "displayName"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden (Verification Code is WRONG)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "verify-user-phone",
+        "description": "This place is where frontend communicates with the backend...",
+        "parameters": [
+          {
+            "schema": {},
+            "in": "query",
+            "name": "uid",
+            "description": "(string or int) uid of the requesting user",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "verificationCode",
+            "description": "verification code to be used",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "summary": "Send New Phone Number Verification Code",
+        "operationId": "resend-verify-phone",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "phoneMethod": {
+                      "$ref": "#/components/schemas/CommunicationMethodPhoneOnly"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (request is bad or the phone is already verified, or if the phone is not in the system)"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "This API resends the SMS/Phone Call that verifies the user's phone number (previously sent verification codes will be discarded).",
+        "tags": [
+          "Captcha-Required"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "description": "phone number to be resent to",
+                    "format": "E164",
+                    "pattern": "^\\+?[1-9]\\d{1,14}$"
+                  },
+                  "preferredPhoneMethod": {
+                    "$ref": "#/components/schemas/CommunicationMethodPhoneOnly"
+                  }
+                },
+                "required": [
+                  "phone"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usersystem/token": {
+      "post": {
+        "summary": "User Login",
+        "operationId": "user-login",
+        "responses": {
+          "200": {
+            "description": "OK   \nNote that only the following fields in the User Object Scheme will not be returned by this API: \n\n1. groupId\n2. passwordHash\n\nAlso note that the permission and setting items are traced to be solid properties",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokenInfo": {
+                      "$ref": "#/components/schemas/UserSystemToken"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/AdvancedUserInfo"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Captcha-Required"
+        ],
+        "description": "This is the API that the frontend interacts with if user chooses to login..",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "description": "either email or phone number",
+                    "oneOf": [
+                      {
+                        "properties": {},
+                        "format": "email",
+                        "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
+                        "minLength": 3,
+                        "maxLength": 50
+                      },
+                      {
+                        "properties": {},
+                        "format": "E164",
+                        "pattern": "^\\+?[1-9]\\d{1,14}$"
+                      }
+                    ],
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Password of the logging user"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Renew User Token",
+        "operationId": "renew-user-token",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokenInfo": {
+                      "$ref": "#/components/schemas/UserSystemToken"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/AdvancedUserInfo"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "minLength": 256,
+                    "maxLength": 256,
+                    "description": "Refresh token given during login or previous renew of token"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "description": "Renew user token. User Client is checked heavily."
+      }
+    },
+    "/oauth2/authorize": {
+      "get": {
+        "summary": "OAuth2 Authorize Prompt Page",
+        "tags": [],
+        "operationId": "get-oauth2-authorize",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "code"
+              ]
+            },
+            "in": "query",
+            "name": "response_type",
+            "required": true,
+            "description": "What type of grant is this?"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "state",
+            "description": "Recommended. An opaque value used by the client to maintain          state between the request and callback."
+          },
+          {
+            "schema": {
+              "type": "array"
+            },
+            "in": "query",
+            "name": "scope",
+            "description": "Scopes. Optional in the specification, if omitted this will be set to basic_info",
+            "style": "spaceDelimited"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "client_id",
+            "required": true,
+            "description": "client_id of the authorizing app"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "redirect_uri",
+            "description": "URL to be called back if the authorization was successful (or unsuccessful). "
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "code_challenge",
+            "description": "Required if using PKCE https://datatracker.ietf.org/doc/html/rfc7636#section-4"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "S256"
+              ]
+            },
+            "in": "query",
+            "name": "code_challenge_method",
+            "description": "Defaults to plain if this field is not set but `code_challenge` is set"
+          }
+        ],
+        "description": "This would actually be a frontend webpage since it is where apps direct their clients to...   \nhttps://datatracker.ietf.org/doc/html/rfc6749#page-4",
+        "responses": {
+          "200": {
+            "description": "Note that this would not be the page result, just parameters redirected for the callback\nhttps://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2\n   \n**Body fields** will actually be GET parameters in the called back URL",
+            "headers": {},
+            "content": {
+              "application/x-www-form-urlencoded": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "description": "Returned authroization code (In SSO service, the code is set to 32 in length)",
+                      "minLength": 32,
+                      "maxLength": 32
+                    },
+                    "state": {
+                      "type": "string",
+                      "description": "Required if a \"state\" parameter was present in the client authorization request."
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Note that this would not be the page result, just parameters redirected for the callback\nhttps://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1   \n**Body fields** will actually be GET parameters in the called back URL",
+            "content": {
+              "application/x-www-form-urlencoded": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "unauthorized_client",
+                        "access_denied",
+                        "unsupported_response_type",
+                        "invalid_scope",
+                        "server_error",
+                        "temporarily_unavailable"
+                      ],
+                      "description": "A single ASCII [USASCII] error code"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "description": "Human-readable ASCII [USASCII] text providing additional information"
+                    },
+                    "error_uri": {
+                      "type": "string",
+                      "description": "A URI identifying a human-readable web page with \ninformation about the error, used to provide the client developer with additional information about the error."
+                    },
+                    "state": {
+                      "type": "string",
+                      "description": "Required if a \"state\" parameter was present in the client authorization request."
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth2/token": {
+      "post": {
+        "summary": "Get Access Token",
+        "operationId": "post-oauth2-token",
+        "responses": {
+          "200": {
+            "description": "OK\nhttps://datatracker.ietf.org/doc/html/rfc6749#section-5.1",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "minLength": 64
+                    },
+                    "token_type": {
+                      "type": "string",
+                      "enum": [
+                        "bearer"
+                      ]
+                    },
+                    "expires_in": {
+                      "type": "integer",
+                      "description": "in seconds",
+                      "minimum": 0
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "description": "optional in the specs, but will definitely be given in SSO service",
+                      "minLength": 128,
+                      "maxLength": 128
+                    },
+                    "scope": {
+                      "type": "array",
+                      "description": "optional in the specs, but will definitely be given in SSO service",
+                      "items": {
+                        "$ref": "#/components/schemas/OAuthScope"
+                      }
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "token_type",
+                    "expires_in",
+                    "refresh_token",
+                    "scope"
+                  ]
+                },
+                "examples": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\nhttps://datatracker.ietf.org/doc/html/rfc6749#section-5.2",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "invalid_client",
+                        "invalid_grant",
+                        "unauthorized_client",
+                        "unsupported_grant_type",
+                        "invalid_scope"
+                      ],
+                      "description": "A single ASCII [USASCII] error code"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "description": "Human-readable ASCII [USASCII] text providing additional information"
+                    },
+                    "error_uri": {
+                      "type": "string",
+                      "description": "A URI identifying a human-readable web page with \ninformation about the error, used to provide the client developer with additional information about the error."
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": [
+                      "authorization_code",
+                      "client_credentials",
+                      "refresh_token"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "Required when grant_type is `authorization_code`, authorization code received, ",
+                    "minLength": 24,
+                    "maxLength": 24
+                  },
+                  "redirect_uri": {
+                    "type": "string",
+                    "description": "Required if the \"redirect_uri\" parameter was included in the authorization request and the grant_type is `authorization_code`, and their values MUST be identical."
+                  },
+                  "client_id": {
+                    "type": "string",
+                    "description": "client_id of the authorizing APP"
+                  },
+                  "client_secret": {
+                    "type": "string",
+                    "description": "required if PKCE is not involved(`grant_type` is `client_credentials` or server side involved auth code grant)"
+                  },
+                  "scope": {
+                    "type": "array",
+                    "description": "Scopes. This will only be considered if `grant_type` is `client_credentials` or `refresh_token`. \nOptional in the specification.\nIf using `client_credentials`, this will default to basic_info if omitted. \nIf using `refresh_token`, the new scopes should not exceed what previous grant had given, and omitting means to maintain the original scopes.",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "code_verifier": {
+                    "type": "string",
+                    "description": "required if the authorization grant is done using AuthCode PKCE \nhttps://datatracker.ietf.org/doc/html/rfc7636#section-4.5"
+                  },
+                  "refresh_token": {
+                    "type": "string",
+                    "description": "required when `grant_type` is `refresh_token`.\nNote that refresh_token will be checked the identity of the client to avoid misuse."
+                  }
+                },
+                "required": [
+                  "grant_type",
+                  "client_id"
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminPermissionItems": {
+        "title": "AdminPermissionItems",
+        "type": "object",
+        "description": "Permission items for admin User/APPs",
+        "properties": {
+          "canManageNormalUser": {
+            "type": "boolean",
+            "description": "True if this user can manage/edit other normal users"
+          },
+          "canManageNormalAdmin": {
+            "description": "True if this person can manage normal admins",
+            "type": "boolean"
+          },
+          "canManageSuperAdmin": {
+            "type": "boolean",
+            "description": "True if this person can manage superadmins"
+          },
+          "canManageNormalApp": {
+            "type": "boolean",
+            "description": "true if this user can manage all normal apps"
+          },
+          "canManageOfficialApp": {
+            "type": "boolean",
+            "description": "true if this user can manage official apps by InteractivePlus"
+          }
+        }
+      },
+      "AdminPermissionItemsSolid": {
+        "title": "AdmissionPermissionItemsSolid",
+        "description": "Solid permission items for admin User/APPs",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AdminPermissionItems"
+          },
+          {
+            "type": "object",
+            "required": [
+              "canManageNormalUser",
+              "canManageNormalAdmin",
+              "canManageSuperAdmin",
+              "canManageNormalApp",
+              "canManageOfficialApp"
+            ]
+          }
+        ]
+      },
+      "BasicUserInfo": {
+        "title": "BasicUserInfo",
+        "type": "object",
+        "properties": {
+          "uid": {
+            "description": "Unique identifier for the given user.",
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "displayName": {
+            "type": "string",
+            "description": "User's display name",
+            "minLength": 3,
+            "maxLength": 50
+          },
+          "signature": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "User's Signature",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "area": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 codes",
+            "maxLength": 2,
+            "minLength": 2
+          },
+          "language": {
+            "type": "string",
+            "description": "2 letter ISO 639-1 codes",
+            "minLength": 2,
+            "maxLength": 2
+          }
+        },
+        "required": [
+          "uid",
+          "displayName",
+          "signature",
+          "area",
+          "language"
+        ],
+        "description": "Basic User Model (A user read by other user/app)"
+      },
+      "AdvancedUserInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BasicUserInfo"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string",
+                "format": "email",
+                "minLength": 3,
+                "maxLength": 50,
+                "description": "User's email",
+                "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g"
+              },
+              "phone": {
+                "type": "string",
+                "description": "User's phone number (E164)",
+                "pattern": "^\\+?[1-9]\\d{1,14}$",
+                "format": "E164"
+              },
+              "emailVerified": {
+                "type": "boolean",
+                "description": "Set to true if the user's email has been verified."
+              },
+              "phoneVerified": {
+                "type": "boolean",
+                "description": "Set to true if the user's phone has been verified"
+              },
+              "lastLoginIP": {
+                "type": "string",
+                "format": "ip address",
+                "description": "IP Address (V4/V6) of the last user login"
+              },
+              "lastLoginTime": {
+                "type": "integer",
+                "description": "UTC Timestamp since EPOCH",
+                "format": "int32"
+              },
+              "registerIP": {
+                "type": "string",
+                "format": "ip address",
+                "description": "IP Address (V4 or V6) of user registration"
+              },
+              "registerTime": {
+                "type": "integer",
+                "format": "int32",
+                "description": "UTC Timestamp since EPOCH"
+              },
+              "permission": {
+                "$ref": "#/components/schemas/UserPermissionSolid"
+              },
+              "setting": {
+                "$ref": "#/components/schemas/UserSettingSolid"
+              }
+            },
+            "required": [
+              "email",
+              "phone",
+              "emailVerified",
+              "phoneVerified",
+              "lastLoginIP",
+              "lastLoginTime",
+              "registerIP",
+              "registerTime",
+              "permission",
+              "setting"
+            ]
+          }
+        ],
+        "title": "AdvancedUserInfo",
+        "description": "Advanced Info about user, usually when user querys about him/herself"
+      },
+      "CompleteUserInfo": {
+        "title": "CompleteUserInfo",
+        "description": "Usually only returned by Admin APIs",
+        "examples": [],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AdvancedUserInfo"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "groupId": {
+                "type": [
+                  "string",
+                  "integer"
+                ],
+                "description": "The groupId that this user belongs to"
+              },
+              "passwordHash": {
+                "type": "string",
+                "format": "password",
+                "description": "Hashed Password (Length and format depends on implementation)"
+              },
+              "permission": {
+                "$ref": "#/components/schemas/UserPermission"
+              },
+              "setting": {
+                "$ref": "#/components/schemas/UserSetting"
+              }
+            },
+            "required": [
+              "groupId",
+              "passwordHash",
+              "permission",
+              "setting"
+            ]
+          }
+        ]
+      },
+      "UserRole": {
+        "type": "integer",
+        "title": "UserRole",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "description": "0 = Normal, 1 = Normal Admin, 2 = Super Admin"
+      },
+      "UserPermission": {
+        "title": "UserPermission",
+        "type": "object",
+        "description": "Permission object for users, in a inheritance-allowed format (empty values)",
+        "properties": {
+          "canLogin": {
+            "type": "boolean",
+            "description": "True if this user can be logged in normally if it is a valid user (any email or phone is verified)"
+          },
+          "forceChangePassword": {
+            "type": "boolean",
+            "description": "Force user to change password next time he/she logs in?"
+          },
+          "canManageSecurity": {
+            "type": "boolean",
+            "description": "True if the user can change his/her password, email, etc."
+          },
+          "canCreateApp": {
+            "type": "boolean",
+            "description": "True if the user can create new APP"
+          },
+          "canManageApp": {
+            "type": "boolean",
+            "description": "true if this user can modify/manage his/her owned or managed apps"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "admin": {
+            "$ref": "#/components/schemas/AdminPermissionItems"
+          }
+        }
+      },
+      "UserPermissionSolid": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserPermission"
+          },
+          {
+            "type": "object",
+            "required": [
+              "canLogin",
+              "forceChangePassword",
+              "canManageSecurity",
+              "canCreateApp",
+              "canManageApp",
+              "role",
+              "admin"
+            ],
+            "properties": {
+              "admin": {
+                "$ref": "#/components/schemas/AdminPermissionItemsSolid"
+              }
+            }
+          }
+        ]
+      },
+      "UserCommunicationSettingItems": {
+        "title": "UserCommunicationSettingItems",
+        "type": "object",
+        "properties": {
+          "official": {
+            "type": "boolean",
+            "description": "official communication through a certain channel"
+          },
+          "oauth": {
+            "type": "boolean",
+            "description": "3rd-party communication through a certain channel"
+          }
+        }
+      },
+      "UserCommunicationSettingItemsSolid": {
+        "title": "UserCommunicationSettingItemsSolid",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserCommunicationSettingItems"
+          },
+          {
+            "type": "object",
+            "required": [
+              "official",
+              "oauth"
+            ]
+          }
+        ]
+      },
+      "UserSetting": {
+        "title": "UserSetting",
+        "type": "object",
+        "description": "Settings posed by user, in a inheritance-allowed format (empty values)",
+        "properties": {
+          "communication": {
+            "type": "object",
+            "description": "communication settings",
+            "properties": {
+              "email": {
+                "$ref": "#/components/schemas/UserCommunicationSettingItems"
+              },
+              "sms": {
+                "$ref": "#/components/schemas/UserCommunicationSettingItems"
+              },
+              "call": {
+                "$ref": "#/components/schemas/UserCommunicationSettingItems"
+              }
+            }
+          }
+        }
+      },
+      "UserSettingSolid": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserSetting"
+          },
+          {
+            "type": "object",
+            "required": [
+              "communication"
+            ],
+            "properties": {
+              "communication": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "sms",
+                  "call"
+                ],
+                "properties": {
+                  "email": {
+                    "$ref": "#/components/schemas/UserCommunicationSettingItemsSolid"
+                  },
+                  "sms": {
+                    "$ref": "#/components/schemas/UserCommunicationSettingItemsSolid"
+                  },
+                  "call": {
+                    "$ref": "#/components/schemas/UserCommunicationSettingItemsSolid"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "title": "",
+        "description": ""
+      },
+      "UserGroup": {
+        "title": "UserGroup",
+        "type": "object",
+        "description": "Group Container for Users",
+        "properties": {
+          "groupId": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "GroupID by this group"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Group display name"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Group's Description"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/UserPermission"
+          },
+          "setting": {
+            "$ref": "#/components/schemas/UserSetting"
+          }
+        },
+        "required": [
+          "groupId",
+          "displayName",
+          "description"
+        ]
+      },
+      "APP": {
+        "title": "APP",
+        "type": "object",
+        "description": "APP represents a registered application in the system",
+        "properties": {
+          "appId": {
+            "type": "string",
+            "description": "appid of the APP"
+          },
+          "groupId": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "The groupId that this app belongs to"
+          },
+          "appSecret": {
+            "type": "string",
+            "description": "Secret for the app, acts like the password for API authentication"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "description": "display name of this app."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "description of this app."
+          },
+          "ownerUid": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "User UID of the owner of this APP"
+          },
+          "managerUidList": {
+            "type": "array",
+            "description": "List of managers uids that are currently managing this app",
+            "items": {
+              "type": [
+                "string",
+                "integer"
+              ]
+            }
+          },
+          "pendingManagerUidList": {
+            "type": "array",
+            "description": "List of manager uids that have not accepted the invitation to manage this app",
+            "items": {
+              "type": [
+                "string",
+                "integer"
+              ]
+            }
+          },
+          "permission": {
+            "$ref": "#/components/schemas/APPPermission"
+          },
+          "setting": {
+            "$ref": "#/components/schemas/APPSetting"
+          }
+        },
+        "required": [
+          "appId",
+          "displayName",
+          "description"
+        ]
+      },
+      "APPPermission": {
+        "title": "APPPermission",
+        "type": "object",
+        "description": "Note: One APP will only have ONE authorization with one user, old authorization will be used when new authorization/permission is granted",
+        "properties": {
+          "allowedScopes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Allowed scopes to have, if null this means to inherit from parent level",
+            "items": {
+              "$ref": "#/components/schemas/OAuthScope"
+            }
+          },
+          "allowedExchangeMethods": {
+            "type": "object",
+            "description": "allowed exchange methods",
+            "properties": {
+              "PKCE": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "true if client side PKCE exchange method is allowed"
+              },
+              "authCode": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "True if server side involved auth code exchange is allowed"
+              },
+              "clientCredential": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "True if server-to-server appsecret exchange is allowed"
+              }
+            }
+          },
+          "role": {
+            "type": "object",
+            "description": "specifies the role of this app",
+            "properties": {
+              "isOfficialApp": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "true if the app is official app (does not grant extra permission though, just differs apps)"
+              }
+            }
+          },
+          "admin": {
+            "$ref": "#/components/schemas/AdminPermissionItems"
+          }
+        }
+      },
+      "APPSetting": {
+        "title": "APPSetting",
+        "type": "object",
+        "description": "Settings for apps",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "If this app is enabled"
+          },
+          "isCallBackValidatorRegex": {
+            "type": "boolean",
+            "description": "Specifies if the callback validator property contains a regex or string(exact match)"
+          },
+          "callbackValidator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "contains regex/exact string validator for callback url. Null means no check"
+          },
+          "enabledExchangeMethods": {
+            "type": "object",
+            "description": "Enabled exchange methods, has to be allowed in permission",
+            "properties": {
+              "PKCE": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "true if client side PKCE Authcode exchange method is enabled"
+              },
+              "authCode": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "true if server side Authcode exchange method is enabled"
+              },
+              "clientCredential": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "true if server-to-server appsecret exchange method is enabled"
+              }
+            }
+          }
+        }
+      },
+      "APPGroup": {
+        "title": "APPGroup",
+        "type": "object",
+        "description": "Group Container for Apps",
+        "properties": {
+          "groupId": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "GroupID by this group"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "description": "Group display name"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Group's Description"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/APPPermission"
+          },
+          "setting": {
+            "$ref": "#/components/schemas/APPSetting"
+          }
+        },
+        "required": [
+          "groupId",
+          "displayName",
+          "description"
+        ]
+      },
+      "CommunicationMethod": {
+        "type": "integer",
+        "title": "CommunicationMethod",
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "description": "|Value|Meaning|\n|-|-|\n|0|Unknown/Not Communicated|\n|1|SMS|\n|2|Email|\n|3|Phone Call|"
+      },
+      "CommunicationMethodPhoneOnly": {
+        "type": "integer",
+        "title": "CommunicationMethodPhoneOnly",
+        "description": "Partial \"CommunicationMethod\", default would be SMS\n\n|Value|Meaning|\n|-|-|\n|1|SMS|\n|3|Phone Call|",
+        "enum": [
+          1,
+          3
+        ]
+      },
+      "OAuthScope": {
+        "type": "string",
+        "title": "OAuthScope",
+        "description": "This model describes all possible scopes",
+        "enum": [
+          "basic-info",
+          "send-email",
+          "send-sms",
+          "send-phone"
+        ]
+      },
+      "QueryParam": {
+        "title": "QueryParam",
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "if not set, then there would be no limit"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          }
+        }
+      },
+      "UserSystemToken": {
+        "title": "UserSystemToken",
+        "type": "object",
+        "description": "",
+        "properties": {
+          "userToken": {
+            "type": "string",
+            "minLength": 128,
+            "maxLength": 128
+          },
+          "expiresIn": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "in seconds"
+          },
+          "refreshToken": {
+            "type": "string",
+            "minLength": 256,
+            "maxLength": 256
+          },
+          "refreshExpiresIn": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "in seconds"
+          }
+        },
+        "required": [
+          "userToken",
+          "expiresIn",
+          "refreshToken",
+          "refreshExpiresIn"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "oauth": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "scopes": {},
+            "authorizationUrl": "/oauth2/authorize",
+            "refreshUrl": "/oauth2/token",
+            "tokenUrl": "/oauth2/token"
+          },
+          "clientCredentials": {
+            "tokenUrl": "/oauth2/token",
+            "refreshUrl": "/oauth2/token",
+            "scopes": {}
+          }
+        },
+        "description": ""
+      },
+      "userToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": ""
+      }
+    },
+    "responses": {},
+    "parameters": {}
+  }
+}
