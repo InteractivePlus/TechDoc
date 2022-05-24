@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "SimpleCaptcha",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "summary": "Simple Captcha System for InteractiveSSO",
     "description": "",
     "contact": {
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://captcha.sso.interactiveplus.org/v1/",
+      "url": "https://captcha.sso.interactiveplus.org/v1",
       "description": "Mainline"
     }
   ],
@@ -128,7 +128,8 @@
             },
             "in": "query",
             "name": "phrase",
-            "description": "Answer for this captcha challenge"
+            "description": "Answer for this captcha challenge",
+            "required": true
           }
         ]
       }
@@ -207,7 +208,8 @@
             },
             "in": "query",
             "name": "secret_phrase",
-            "description": "Secret shared between SSO service and captcha service (so this API does not get used by 3rd party)"
+            "description": "Secret shared between SSO service and captcha service (so this API does not get used by 3rd party)",
+            "required": true
           }
         ]
       }
