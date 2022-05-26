@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "InteractiveSSO",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "summary": "InteractiveSSO API Definition",
     "description": "This is the api definition file for InteractivePlus's InteractiveSSO",
     "license": {
@@ -86,6 +86,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         },
         "description": "Try to register new user\n\n---\n\nWill trigger a sending of verification email / sms / phone calls",
@@ -146,8 +149,8 @@
       },
       "parameters": [],
       "get": {
-        "summary": "Admin Get User List",
-        "operationId": "get-usersystem-users",
+        "summary": "Search Users",
+        "operationId": "search-users",
         "responses": {
           "200": {
             "description": "Successful.   \nEvery field would be present.   \nNote that permission and setting-wise, it will only display the user's custom settings (some values might be null)",
@@ -157,7 +160,14 @@
                   "type": "array",
                   "description": "This can be empty tho...if nothing is found",
                   "items": {
-                    "$ref": "#/components/schemas/CompleteUserInfo"
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/BasicUserInfo"
+                      },
+                      {
+                        "$ref": "#/components/schemas/CompleteUserInfo"
+                      }
+                    ]
                   }
                 }
               }
@@ -170,13 +180,13 @@
             "description": "Unauthorized\n(When client offers no authorization)"
           },
           "403": {
-            "description": "Forbidden\n(When credential provided by client does not have permission to do...)"
+            "description": "Forbidden\n(When credential provided by client does not have admin permission / permission to user to perform this action...)"
           },
           "500": {
             "description": "Internal Server Error"
           }
         },
-        "description": "",
+        "description": "This endpoint allows user/admins to search users",
         "security": [
           {
             "userToken": []
@@ -194,7 +204,7 @@
             },
             "in": "query",
             "name": "displayNamePartial",
-            "description": "partial display name to be searched"
+            "description": "partial display name to be searched (required for normal users)"
           },
           {
             "schema": {
@@ -202,7 +212,7 @@
             },
             "in": "query",
             "name": "emailPartial",
-            "description": "partial email to be searched"
+            "description": "partial email to be searched (only if admin)"
           },
           {
             "schema": {
@@ -210,7 +220,7 @@
             },
             "in": "query",
             "name": "phonePartial",
-            "description": "partial phone number (in E164) to be searched"
+            "description": "partial phone number (in E164) to be searched  (only if admin)"
           },
           {
             "schema": {
@@ -220,7 +230,7 @@
             },
             "in": "query",
             "name": "limit",
-            "description": "limit on number of results (if empty then there would be no limit)"
+            "description": "limit on number of results (if empty then there would be no limit for admin or some default limit for normal user)"
           },
           {
             "schema": {
@@ -229,6 +239,15 @@
             "in": "query",
             "name": "offset",
             "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": "false"
+            },
+            "in": "query",
+            "name": "admin",
+            "description": "if admin mode is activated for an admin"
           }
         ]
       }
@@ -248,7 +267,7 @@
         "tags": [],
         "responses": {
           "200": {
-            "description": "**OK**   \n\n1. if one user is reading another, returns `BasicUserInfo`\n2. if one user is reading himself(including admin), returns `AdvancedUserInfo`\n3. if admin is reading **other** user, returns `CompleteUserInfo`",
+            "description": "**OK**   \n\n1. if not admin mode, and an user is reading another, returns `BasicUserInfo`\n2. if not admin mode, and one user is reading himself, returns `AdvancedUserInfo`\n3. if admin mode, returns `CompleteUserInfo`\n\nNote: If a normal APP tries to read a user, it depends on if during this query the relative oauth token is present or not.",
             "content": {
               "application/json": {
                 "schema": {
@@ -289,10 +308,23 @@
         "description": "This API lets user him/herself or admin read info about user.",
         "security": [
           {
-            "oauth": []
+            "oauth": [
+              "basic_info"
+            ]
           },
           {
             "userToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "boolean",
+              "default": "false"
+            },
+            "in": "query",
+            "name": "admin",
+            "description": "if admin mode or not"
           }
         ]
       },
@@ -301,7 +333,7 @@
         "operationId": "edit-user-info",
         "responses": {
           "200": {
-            "description": "OK\n\n---\n\n1. If the user is not an admin or the user is modifying itself, then `AdvancedUserInfo` will be returned\n2. If the user is an admin modifying other users, then `CompleteUserInfo` will be returned",
+            "description": "OK\n\n---\n\n1. If normal mode, then `AdvancedUserInfo` will be returned\n2. If admin mode, then `CompleteUserInfo` will be returned",
             "content": {
               "application/json": {
                 "schema": {
@@ -359,7 +391,7 @@
             "description": "Internal Server Error"
           }
         },
-        "description": "",
+        "description": "Edit User Info",
         "security": [
           {
             "oauth": []
@@ -375,6 +407,11 @@
                 "type": "object",
                 "description": "Fields of CompleteUserInfo, see the schema definition for more detail. \nAll fields are optional (but there must be more than 1 fields since we want to change at least one info item).",
                 "properties": {
+                  "admin": {
+                    "type": "boolean",
+                    "description": "If admin mode or not",
+                    "default": false
+                  },
                   "displayName": {
                     "type": "string",
                     "minLength": 3,
@@ -409,18 +446,24 @@
                     "$ref": "#/components/schemas/UserPermission"
                   },
                   "email": {
-                    "type": "string",
-                    "description": "Only if the requesting user is an admin",
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Only if the requesting user is an admin, null means to clear the user's email.",
                     "format": "email",
                     "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
                     "minLength": 3,
                     "maxLength": 50
                   },
                   "phone": {
-                    "type": "string",
+                    "type": [
+                      "string",
+                      "null"
+                    ],
                     "format": "E164",
                     "pattern": "^\\+?[1-9]\\d{1,14}$",
-                    "description": "Only if the requesting user is an admin"
+                    "description": "Only if the requesting user is an admin, null means to clear the user's phone"
                   },
                   "emailVerified": {
                     "type": "boolean",
@@ -429,13 +472,22 @@
                   "phoneVerified": {
                     "type": "boolean",
                     "description": "Only if the requesting user is an admin"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Only if the requesting user is an admin, sets the new password of the user"
+                  },
+                  "groupId": {
+                    "type": "string",
+                    "description": "Only if the requesting user is an admin, sets the new groupId of the user"
                   }
                 }
               }
             }
           },
-          "description": "**Non-Admin Mode(or self-edit)**\nSetting inner object fields leaving blank means no change to existing setting, permission field should not be present\n\n---\n\n**Admin Mode**\n\n1. **Setting** field can be omitted to save previous setting object for the specific user. If setting field is present, then there will not be a mask applied to the object, it will be written to the backend exactly as is (there's no option to maintain selected previous setting items unless you explicitly submit a request based on a copy previous setting item).\n2. **Permission** field **may only be present if the operation requester is an admin user/app** and has permission to manage superadmins. Same rule as Setting. It can be omitted to save previous permission object for the specific user. If permission field is present, then there will not be a mask applied to the object, it will be written to the backend exactly as is (there's no option to maintain selected previous permission items unless you explicitly submit a request based on a copy previous permission item).\n"
-        }
+          "description": "**Non-Admin Mode(or self-edit)**\n1. Leaving inner object fields of `setting` attribute blank means no change to existing setting item\n2. `permission` field should not be present\n\n---\n\n**Admin Mode**\n\n1. **Setting** field can be omitted to save previous setting object for the specific user. If setting field is present, then there will not be a mask applied to the object, it will be written to the backend exactly as is (there's no option to maintain selected previous setting items unless you explicitly submit a request based on a copy previous setting item).\n2. **Permission** field **may only be present if the operation requester is an admin user/app** and has permission to manage superadmins. Same rule as Setting. It can be omitted to save previous permission object for the specific user. If permission field is present, then there will not be a mask applied to the object, it will be written to the backend exactly as is (there's no option to maintain selected previous permission items unless you explicitly submit a request based on a copy previous permission item).\n\n---\n\n**Normal APP OAuth Token** should not be allowed to do anything.\n"
+        },
+        "parameters": []
       }
     },
     "/usersystem/users/{uid}/email": {
@@ -478,12 +530,28 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "string",
+                "type": "object",
                 "format": "email",
-                "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
-                "minLength": 3,
-                "maxLength": 50,
-                "description": "New Email Address"
+                "properties": {
+                  "newEmail": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
+                    "minLength": 3,
+                    "maxLength": 50,
+                    "description": "New Email Address, can be null if the phone number in the account is verified and present."
+                  },
+                  "verificationCode": {
+                    "type": "string",
+                    "description": "Verification Code"
+                  }
+                },
+                "required": [
+                  "newEmail",
+                  "verificationCode"
+                ]
               }
             }
           }
@@ -545,10 +613,84 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "string",
                 "format": "E164",
-                "pattern": "^\\+?[1-9]\\d{1,14}$",
-                "description": "New Phone Number"
+                "type": "object",
+                "properties": {
+                  "newPhone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "E164",
+                    "pattern": "^\\+?[1-9]\\d{1,14}$",
+                    "description": "New Phone Number, can be null if email has been verified and present."
+                  },
+                  "verificationCode": {
+                    "type": "string",
+                    "description": "Verification Code"
+                  }
+                },
+                "required": [
+                  "newPhone",
+                  "verificationCode"
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      }
+    },
+    "/usersystem/users/{account}/password": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string",
+            "format": "E164/email",
+            "pattern": "(^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$)|(^\\+?[1-9]\\d{1,14}$)"
+          },
+          "name": "account",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "patch": {
+        "summary": "Change or Reset Password",
+        "operationId": "change-password",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This api allows user to change/reset password with verification code",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "verificationCode": {
+                    "type": "string",
+                    "description": "Verification Code to use"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "description": "New password to use"
+                  }
+                },
+                "required": [
+                  "verificationCode",
+                  "newPassword"
+                ]
               }
             }
           },
@@ -561,8 +703,8 @@
         "summary": "User Login (Get User Token)",
         "operationId": "user-login",
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
@@ -574,10 +716,67 @@
                     "user": {
                       "$ref": "#/components/schemas/AdvancedUserInfo"
                     }
-                  }
+                  },
+                  "required": [
+                    "tokenInfo",
+                    "user"
+                  ]
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden\n\n---\n\n1. User being forbidden by the system to login (usually set by admin for banning a user)"
+          },
+          "417": {
+            "description": "Expectation Failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "not-verified-account"
+                      ]
+                    },
+                    "account-info": {
+                      "type": "object",
+                      "description": "This will only be present if `reason` is `not-verified-account`, this is for use for guiding verification.",
+                      "properties": {
+                        "email": {
+                          "type": "string",
+                          "description": "only given if user has email given during registration.",
+                          "format": "email",
+                          "minLength": 3,
+                          "maxLength": 50,
+                          "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g"
+                        },
+                        "phone": {
+                          "type": [
+                            "string",
+                            "integer"
+                          ],
+                          "description": "only given if user has phone given during registration.",
+                          "format": "E164",
+                          "pattern": "^\\+?[1-9]\\d{1,14}$"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         },
         "tags": [
@@ -777,7 +976,9 @@
                   "properties": {
                     "phone": {
                       "type": "string",
-                      "description": "User's phone number, used to display or prompt login?"
+                      "description": "User's phone number, used to display or prompt login?",
+                      "pattern": "^\\+?[1-9]\\d{1,14}$",
+                      "format": "E164"
                     },
                     "displayName": {
                       "type": "string",
@@ -808,13 +1009,6 @@
         "description": "This place is where frontend communicates with the backend...And help verifies user's phone using a verificationCode",
         "parameters": [
           {
-            "schema": {},
-            "in": "query",
-            "name": "uid",
-            "description": "(string or int) uid of the requesting user",
-            "required": true
-          },
-          {
             "schema": {
               "type": "string"
             },
@@ -822,6 +1016,17 @@
             "name": "verificationCode",
             "description": "verification code to be used",
             "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "E164",
+              "pattern": "^\\+?[1-9]\\d{1,14}$"
+            },
+            "in": "query",
+            "name": "phone",
+            "required": true,
+            "description": "verifying phone"
           }
         ]
       },
@@ -839,7 +1044,10 @@
                     "phoneMethod": {
                       "$ref": "#/components/schemas/CommunicationMethodPhoneOnly"
                     }
-                  }
+                  },
+                  "required": [
+                    "phoneMethod"
+                  ]
                 }
               }
             }
@@ -1009,6 +1217,653 @@
             "userToken": []
           }
         ]
+      }
+    },
+    "/usersystem/verification/changePassword": {
+      "parameters": [],
+      "post": {
+        "summary": "Request Reset/Change Password Verification Code",
+        "operationId": "request-change-password-vericode",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentMethod": {
+                      "$ref": "#/components/schemas/CommunicationMethod"
+                    }
+                  },
+                  "required": [
+                    "sentMethod"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden\n\n---\n\nThis happens if the account is blocked, doesn't exist, etc.\n\nIf the account has at least one of phone/email verified, then the communication method that has already been verified will be given priority, instead of sending to the method given in the argument."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint acts as a point to send verification codes to reset or change user password.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "type": "string",
+                    "format": "E164/email",
+                    "pattern": "(^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$)|(^\\+?[1-9]\\d{1,14}$)"
+                  },
+                  "preferredMethod": {
+                    "$ref": "#/components/schemas/CommunicationMethod"
+                  }
+                },
+                "required": [
+                  "account"
+                ]
+              }
+            }
+          },
+          "description": ""
+        },
+        "tags": [
+          "Captcha-Required"
+        ]
+      }
+    },
+    "/usersystem/verification/deleteApp": {
+      "post": {
+        "summary": "Request Delete/Leave App Verification Code",
+        "operationId": "request-delete-app-vericode",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentMethod": {
+                      "$ref": "#/components/schemas/CommunicationMethod"
+                    }
+                  },
+                  "required": [
+                    "sentMethod"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "tags": [
+          "Captcha-Required"
+        ],
+        "description": "This endpoint is for app-owner users to request verification codes to delete an owned app.",
+        "security": [
+          {
+            "userToken": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preferredMethod": {
+                    "$ref": "#/components/schemas/CommunicationMethod"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appsystem/apps": {
+      "post": {
+        "summary": "Create New App",
+        "operationId": "create-new-app",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "app": {
+                      "$ref": "#/components/schemas/AdvancedAppInfo"
+                    }
+                  },
+                  "required": [
+                    "app"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden (If user is forbidden from creating apps)"
+          },
+          "409": {
+            "description": "Conflict (DisplayName already exists in the system)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint allows users to create new apps",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 30,
+                    "description": "new display name for the app"
+                  }
+                },
+                "required": [
+                  "displayName"
+                ]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "userToken": []
+          }
+        ],
+        "tags": [
+          "Captcha-Required"
+        ]
+      },
+      "get": {
+        "summary": "List/Search Owned Apps / Admin Search Apps",
+        "operationId": "admin-search-apps",
+        "responses": {
+          "200": {
+            "description": "OK\n\n---\n\n1. Returns `AdvancedAppInfo` when non-admin mode\n2. Returns `CompleteAppInfo` when admin mode",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/AdvancedAppInfo"
+                      },
+                      {
+                        "$ref": "#/components/schemas/CompleteAppInfo"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ],
+        "description": "This entry can only be used by admin user/apps to list or search apps, or normal users to list or search owned/managed apps",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 30
+            },
+            "in": "query",
+            "name": "displayNamePartial",
+            "description": "partial display name of app to be searched"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "in": "query",
+            "name": "descriptionPartial",
+            "description": "partial description to be searched"
+          },
+          {
+            "schema": {},
+            "in": "query",
+            "name": "relatedUserUid",
+            "description": "string/integer (admin mode only)"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minLength": 0,
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "limit",
+            "description": "limit on number of results (if empty then there would be no limit)"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": "false"
+            },
+            "in": "query",
+            "name": "admin",
+            "description": "If admin mode or not"
+          }
+        ]
+      }
+    },
+    "/appsystem/apps/{appid}": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "appid",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "summary": "Get App Info",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK\n\n---\n\n1. Returns `BasicAppInfo` if one unrelated user is querying about this app\n2. Returns `AdvancedAppInfo` if the user is manager of this app or if the app is querying about itself\n3. Returns `CompleteAppInfo` if it is an admin query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "app": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/BasicAppInfo"
+                        },
+                        {
+                          "$ref": "#/components/schemas/AdvancedAppInfo"
+                        },
+                        {
+                          "$ref": "#/components/schemas/CompleteAppInfo"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "app"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "get-app-info",
+        "description": "This endpoint is used by admin users/apps and normal users to read about a specific app, or for the app to read itself",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "boolean",
+              "default": "false"
+            },
+            "in": "query",
+            "name": "admin",
+            "description": "if admin mode or not"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Edit App Info",
+        "operationId": "edit-app-info",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint allows admin users/apps and normal users to edit information about an app",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "admin": {
+                    "type": "boolean",
+                    "description": "If admin mode is enabled or not",
+                    "default": false
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 30,
+                    "description": "If present, would be the new displayName of the app"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "If present, would be the new description of the app"
+                  },
+                  "rerollSecret": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If the app's appSecret should be rerolled"
+                  },
+                  "setting": {
+                    "$ref": "#/components/schemas/AppSetting"
+                  },
+                  "ownerUid": {
+                    "type": [
+                      "string",
+                      "integer"
+                    ],
+                    "description": "Only if admin mode, new ownerUid of this app"
+                  },
+                  "managerUidList": {
+                    "type": "array",
+                    "description": "Only if admin mode, new list of managers uids that are currently managing this app",
+                    "items": {
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
+                    }
+                  },
+                  "pendingManagerUidList": {
+                    "type": "array",
+                    "description": "Only if admin mode, new list of manager uids that have not accepted the invitation to manage this app",
+                    "items": {
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
+                    }
+                  },
+                  "permission": {
+                    "$ref": "#/components/schemas/AppPermission"
+                  },
+                  "groupId": {
+                    "type": [
+                      "string",
+                      "integer"
+                    ],
+                    "description": "Only if admin mode, new groupId for this app"
+                  }
+                }
+              }
+            }
+          },
+          "description": "**Non-Admin Mode(or self-edit)**\n1. Leaving inner object fields of `setting` attribute blank means no change to existing setting item\n2. `permission` field should not be present\n\n---\n\n**Admin Mode**\n\n1. **Setting** field can be omitted to save previous setting object for the specific app. If setting field is present, then there will not be a mask applied to the object, it will be written to the backend exactly as is (there's no option to maintain selected previous setting items unless you explicitly submit a request based on a copy previous setting item).\n2. **Permission** field **may only be present if the operation requester is an admin user/app** and has permission to manage superadmins. Same rule as Setting. It can be omitted to save previous permission object for the specific user. If permission field is present, then there will not be a mask applied to the object, it will be written to the backend exactly as is (there's no option to maintain selected previous permission items unless you explicitly submit a request based on a copy previous permission item).\n\n---\n\n**Normal APP OAuth Token** should not be allowed to do anything."
+        }
+      },
+      "delete": {
+        "summary": "Delete App",
+        "operationId": "delete-app",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "Used by admins or app owners to delete an app, or app managers to leave app.",
+        "security": [
+          {
+            "userToken": []
+          },
+          {
+            "oauth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "admin": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If admin mode or not"
+                  },
+                  "verificationCode": {
+                    "type": "string",
+                    "description": "Required if non-admin mode (and the user is required to be the owner/manager of the deleting/leaving app)"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appsystem/apps/{appid}/managers": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "appid",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "post": {
+        "summary": "Invite User to Manage App / Accept App Invitation",
+        "operationId": "invite-app-manager",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "app": {
+                      "$ref": "#/components/schemas/AdvancedAppInfo"
+                    }
+                  },
+                  "required": [
+                    "app"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint is for app owners to invite new managers to the list, or for user being invited to join the manager list.\n\nFor admin users/apps, use PATCH `/appsystem/apps/{appid}`",
+        "security": [
+          {
+            "userToken": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "newManagerUid": {
+                    "type": [
+                      "string",
+                      "integer"
+                    ],
+                    "description": "Required and only used if inviting new user to the app(If accepting invitation, just leave this empty). Uid of the new manager"
+                  }
+                }
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "delete": {
+        "summary": "Delete User from Manager List",
+        "operationId": "delete-app-manager",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found (Manager not found in the manager list)"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint is for app owners to delete managers from the managing list\n\nFor admin users/apps, use PATCH `/appsystem/apps/{appid}`",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "managerUid": {
+                    "type": [
+                      "string",
+                      "integer"
+                    ],
+                    "description": "uid of the manager being removed"
+                  }
+                },
+                "required": [
+                  "managerUid"
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
       }
     },
     "/oauth2/authorize": {
@@ -1280,7 +2135,7 @@
                   },
                   "scope": {
                     "type": "array",
-                    "description": "Scopes. This will only be considered if `grant_type` is `client_credentials` or `refresh_token`. \nOptional in the specification.\nIf using `client_credentials`, this will default to basic_info if omitted. \nIf using `refresh_token`, the new scopes should not exceed what previous grant had given, and omitting means to maintain the original scopes.",
+                    "description": "Scopes. This will only be considered if `grant_type` is`refresh_token`. \nOptional in the specification.\nIf using `client_credentials`, we don't have specific scopes to set because permission control is integrated into the app system.\nIf using `refresh_token`, the new scopes should not exceed what previous grant had given, and omitting means to maintain the original scopes.",
                     "items": {
                       "type": "string"
                     }
@@ -1773,8 +2628,8 @@
           "displayName": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 20,
-            "description": "display name of this app."
+            "description": "display name of this app.",
+            "maxLength": 30
           },
           "description": {
             "type": [
@@ -1928,7 +2783,7 @@
       "AppPermission": {
         "title": "APPPermission",
         "type": "object",
-        "description": "Note: One APP will only have ONE authorization with one user, old authorization will be used when new authorization/permission is granted",
+        "description": "Note: One APP will only have ONE authorization record with one user (but with multiple access tokens), old authorization will be used when new authorization/permission is granted",
         "properties": {
           "allowedScopes": {
             "type": "array",
@@ -2122,17 +2977,6 @@
           3
         ]
       },
-      "OAuthScope": {
-        "type": "string",
-        "title": "OAuthScope",
-        "description": "This model describes all possible scopes",
-        "enum": [
-          "basic-info",
-          "send-email",
-          "send-sms",
-          "send-phone"
-        ]
-      },
       "QueryParam": {
         "title": "QueryParam",
         "type": "object",
@@ -2180,6 +3024,17 @@
           "refreshToken",
           "refreshExpiresIn"
         ]
+      },
+      "OAuthScope": {
+        "type": "string",
+        "title": "OAuthScope",
+        "description": "This model describes all possible scopes",
+        "enum": [
+          "basic-info",
+          "send-email",
+          "send-sms",
+          "send-phone"
+        ]
       }
     },
     "securitySchemes": {
@@ -2187,7 +3042,12 @@
         "type": "oauth2",
         "flows": {
           "authorizationCode": {
-            "scopes": {},
+            "scopes": {
+              "basic_info": "Read basic info about user (`BasicUserInfo`)",
+              "send_sms": "Send SMS to user",
+              "send_email": "Send email to user",
+              "send_phone": "Send phone call to user"
+            },
             "authorizationUrl": "/oauth2/authorize",
             "refreshUrl": "/oauth2/token",
             "tokenUrl": "/oauth2/token"
