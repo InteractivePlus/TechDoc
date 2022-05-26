@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://captcha.sso.interactiveplus.org/v1",
+      "url": "https://captcha-sso.interactiveplus.org",
       "description": "Mainline"
     }
   ],
