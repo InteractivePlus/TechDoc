@@ -267,7 +267,7 @@
         "tags": [],
         "responses": {
           "200": {
-            "description": "**OK**   \n\n1. if not admin mode, and an user is reading another, returns `BasicUserInfo`\n2. if not admin mode, and one user is reading himself, returns `AdvancedUserInfo`\n3. if admin mode, returns `CompleteUserInfo`\n\nNote: If a normal APP tries to read a user, it depends on if during this query the relative oauth token is present or not.",
+            "description": "**OK**   \n\n1. if not admin mode, and an user/app is reading another user, returns `BasicUserInfo`\n2. if not admin mode, and one user is reading himself, returns `AdvancedUserInfo`\n3. if admin mode, returns `CompleteUserInfo`\n\nNote: If a normal APP tries to read a user, it depends on if during this query the relative oauth token is present or not.",
             "content": {
               "application/json": {
                 "schema": {
@@ -305,7 +305,7 @@
           }
         },
         "operationId": "get-user-info",
-        "description": "This API lets user him/herself or admin read info about user.",
+        "description": "This API lets user/app read info about one specific user",
         "security": [
           {
             "oauth": [
@@ -1340,6 +1340,61 @@
         }
       }
     },
+    "/usersystem/verification/changeAppOwner": {
+      "post": {
+        "summary": "Request Change APP Owner Verification Code",
+        "operationId": "request-change-app-owner-vericode",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentMethod": {
+                      "$ref": "#/components/schemas/CommunicationMethod"
+                    }
+                  },
+                  "required": [
+                    "sentMethod"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint allows app owner to request a change-owner verification code for his/her app",
+        "security": [
+          {
+            "userToken": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preferredMethod": {
+                    "$ref": "#/components/schemas/CommunicationMethod"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/appsystem/apps": {
       "post": {
         "summary": "Create New App",
@@ -1866,6 +1921,506 @@
         }
       }
     },
+    "/appsystem/apps/{appid}/owner": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "appid",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "patch": {
+        "summary": "Transfer APP Ownership",
+        "operationId": "patch-appsystem-apps-appid-owner",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "app": {
+                      "$ref": "#/components/schemas/AdvancedAppInfo"
+                    }
+                  },
+                  "required": [
+                    "app"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint allows an app-owner to transfer app ownership to a manager. The manager will be swapped to be the owner and the previous owner will be swapped to be a manager.\n\nAdmin Alternative: `PATCH` `/appsystem/apps/{appid}`",
+        "security": [
+          {
+            "userToken": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": [
+                  "string",
+                  "integer"
+                ],
+                "description": "uid of the new owner, must be in the non-pending manager list."
+              }
+            }
+          },
+          "description": ""
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "verificationCode",
+            "description": "Verification code by `/usersystem/verification/changeAppOwner`",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/authorizations": {
+      "get": {
+        "summary": "Your GET endpoint",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorizations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OAuthRecord"
+                      }
+                    }
+                  },
+                  "required": [
+                    "authorizations"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "list-authorization-records",
+        "description": "This endpoints lets an admin list all authorizations of specific user/app.\n\nOr lets a normal user/app list authorized/granted authorizations.",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "boolean",
+              "default": "false"
+            },
+            "in": "query",
+            "name": "admin",
+            "description": "If admin mode or not"
+          },
+          {
+            "schema": {},
+            "in": "query",
+            "name": "uid",
+            "description": "int/string, used and optional if admin mode"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "appId",
+            "description": "used and optional if admin mode"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minLength": 0,
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "limit",
+            "description": "limit on number of results (if empty then there would be no limit)"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          }
+        ]
+      }
+    },
+    "/authorizations/authcode": {
+      "post": {
+        "summary": "Generate New Authorization Code for OAuth2",
+        "operationId": "new-authorization-code-oauth2",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorization": {
+                      "$ref": "#/components/schemas/OAuthRecord"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "authorization code",
+                      "minLength": 32,
+                      "maxLength": 32
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "description": "in seconds"
+                    }
+                  },
+                  "required": [
+                    "authorization",
+                    "code",
+                    "expiresIn"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden\n\n(If the authorization record is frozen, or if the app is not allowed to use some of the scopes)\n\n---\n\nthe authorization field will be present only if the record is frozen by admin or by the app.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorization": {
+                      "$ref": "#/components/schemas/OAuthRecord"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found\n\n---\n\nThis means authorization code not present. It should never happen since frontend have to always call `PUT /authorizations/{appid}/{uid}`"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint is accessed by the frontend at endpoint `/oauth2/authorize`, after the frontend has created/edited an authorization record using `PUT /authorizations/{appid}/{uid}`, it should call this API to create an authorization code to return to the URL callback.\n\nLots of parameters should just be passed directly from frontend except for `scope`.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "array"
+            },
+            "in": "query",
+            "name": "scope",
+            "description": "Scopes. Optional in the specification, if omitted this will be set to basic_info",
+            "style": "spaceDelimited"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "description": "appId(parameter client_id) of the authorizing app"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "redirect_uri",
+            "description": "URL to be called back if the authorization was successful (or unsuccessful). "
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "code_challenge",
+            "description": "Required if using PKCE https://datatracker.ietf.org/doc/html/rfc7636#section-4"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "S256"
+              ]
+            },
+            "in": "query",
+            "name": "code_challenge_method",
+            "description": "Defaults to plain if this field is not set but `code_challenge` is set"
+          }
+        ],
+        "security": [
+          {
+            "userToken": []
+          }
+        ]
+      }
+    },
+    "/authorizations/{appid}/{uid}": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "appid",
+          "in": "path",
+          "required": true
+        },
+        {
+          "schema": {},
+          "name": "uid",
+          "in": "path",
+          "required": true,
+          "description": "int/string"
+        }
+      ],
+      "get": {
+        "summary": "Read Specific User-App OAuth Record",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorization": {
+                      "$ref": "#/components/schemas/OAuthRecord"
+                    }
+                  },
+                  "required": [
+                    "authorization"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "get-oauth2-app-user-authorization-info",
+        "description": "This endpoint is for normal user / normal app or admin to read about a specific user-app `authorization_code` authorization record.",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Add/Edit User-App OAuth Record",
+        "operationId": "add-edit-oauth-user-app-authorization",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorization": {
+                      "$ref": "#/components/schemas/OAuthRecord"
+                    }
+                  },
+                  "required": [
+                    "authorization"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorization": {
+                      "$ref": "#/components/schemas/OAuthRecord"
+                    }
+                  },
+                  "required": [
+                    "authorization"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint allows Frontend (on behalf of an normal user) at the endpoint `/oauth2/authorization` to communicate with the backend and establish new/edit old authorization towards an app.\n\nIt can also be used for an admin to create/edit authorization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scope": {
+                    "type": "array",
+                    "description": "ommiting this field will write scope to empty.",
+                    "items": {
+                      "$ref": "#/components/schemas/OAuthScope"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "userToken": []
+          },
+          {
+            "oauth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete User/App OAuth Record",
+        "operationId": "delete-oauth-user-app-authorization",
+        "responses": {
+          "200": {
+            "description": "OK (Freeze successful)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorization": {
+                      "$ref": "#/components/schemas/OAuthRecord"
+                    }
+                  },
+                  "required": [
+                    "authorization"
+                  ]
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content (Delete Successful)"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "description": "This endpoint allows Frontend (on behalf of an normal user) to communicate with the backend and establish new/edit old authorization towards an app.\nThis endpoint can also be used by apps to freeze/delete an authorization.\n\nIt can also be used for an admin to freeze/delete authorization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "freeze": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If freezing or deleting the record, this can only be false for normal-user-based query"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/oauth2/authorize": {
       "get": {
         "summary": "OAuth2 Authorize Prompt Page",
@@ -1890,7 +2445,7 @@
             },
             "in": "query",
             "name": "state",
-            "description": "Recommended. An opaque value used by the client to maintain          state between the request and callback."
+            "description": "Recommended. An opaque value used by the client to maintain state between the request and callback."
           },
           {
             "schema": {
@@ -1908,7 +2463,7 @@
             "in": "query",
             "name": "client_id",
             "required": true,
-            "description": "client_id of the authorizing app"
+            "description": "client_id (appId) of the authorizing app"
           },
           {
             "schema": {
@@ -2046,7 +2601,7 @@
                     },
                     "scope": {
                       "type": "array",
-                      "description": "optional in the specs, but will definitely be given in SSO service",
+                      "description": "optional in the specs, and if it is authorized to be empty then it would be empty(nothing about the user would be reveled and the app will only be able to differentiate different users based on uid).",
                       "items": {
                         "$ref": "#/components/schemas/OAuthScope"
                       }
@@ -2056,8 +2611,7 @@
                     "access_token",
                     "token_type",
                     "expires_in",
-                    "refresh_token",
-                    "scope"
+                    "refresh_token"
                   ]
                 },
                 "examples": {}
@@ -2100,7 +2654,14 @@
             }
           }
         },
-        "parameters": [],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "cookie"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
@@ -2157,7 +2718,56 @@
             }
           },
           "description": ""
-        }
+        },
+        "description": "This is a backend API that lets third-party clients get their oauth token.\n\n---\n\n> Note: If using `grant_type` = `client_credentials`, there will not be any record to query or search later on, it might actually not be put into the database. Otherwise the authorization records are supposed to be created by SSO frontend and can be checked via `GET` `/authorizations/{appid}/{uid}` endpoint."
+      }
+    },
+    "/oauth2/info": {
+      "get": {
+        "summary": "Get OAuth2 Token Info",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "grant_type": {
+                      "type": "string",
+                      "enum": [
+                        "client_credentials",
+                        "authorization_code"
+                      ]
+                    },
+                    "PKCE": {
+                      "type": "boolean",
+                      "description": "Only present if `grant_type` is `authorization_code`, tells if the authorization is done using PKCE or appSecret-involved authorization code exchange."
+                    },
+                    "uid": {
+                      "type": [
+                        "string",
+                        "integer"
+                      ],
+                      "description": "Present if `grant_type` is `client_credentials`"
+                    }
+                  },
+                  "required": [
+                    "grant_type"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-oauth2-info",
+        "description": "Get OAuth2 Token Info",
+        "security": [
+          {
+            "oauth": []
+          }
+        ]
       }
     }
   },
@@ -2826,12 +3436,6 @@
           },
           {
             "type": "object",
-            "required": [
-              "allowedScopes",
-              "allowedExchangeMethods",
-              "role",
-              "admin"
-            ],
             "properties": {
               "allowedExchangeMethods": {
                 "type": "object",
@@ -2844,7 +3448,12 @@
               "admin": {
                 "$ref": "#/components/schemas/AdminPermissionItemsSolid"
               }
-            }
+            },
+            "required": [
+              "allowedExchangeMethods",
+              "admin",
+              "role"
+            ]
           }
         ]
       },
@@ -2966,7 +3575,8 @@
           2,
           3
         ],
-        "description": "Used to indicate preference/result method of communication, default to SMS for preference.\n|Value|Meaning|\n|-|-|\n|0|Unknown/Not Communicated|\n|1|SMS|\n|2|Email|\n|3|Phone Call|"
+        "description": "Used to indicate preference/result method of communication, default to SMS for preference.\n|Value|Meaning|\n|-|-|\n|0|Unknown/Not Communicated|\n|1|SMS|\n|2|Email|\n|3|Phone Call|",
+        "default": 1
       },
       "CommunicationMethodPhoneOnly": {
         "type": "integer",
@@ -2975,7 +3585,8 @@
         "enum": [
           1,
           3
-        ]
+        ],
+        "default": 1
       },
       "QueryParam": {
         "title": "QueryParam",
@@ -3034,6 +3645,37 @@
           "send-email",
           "send-sms",
           "send-phone"
+        ]
+      },
+      "OAuthRecord": {
+        "title": "OAuthRecord",
+        "type": "object",
+        "properties": {
+          "appId": {
+            "type": "string"
+          },
+          "uid": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "description": "Required if `grant_type` is `authorization_code`"
+          },
+          "scope": {
+            "type": "array",
+            "description": "Required if `grant_type` is `authorization_code` (if uid is present here)",
+            "items": {
+              "$ref": "#/components/schemas/OAuthScope"
+            }
+          },
+          "frozen": {
+            "type": "boolean",
+            "description": "If the authorization is frozen (user can no longer authorize the app and the app can no longer request for oauth token for the user)",
+            "default": false
+          }
+        },
+        "required": [
+          "appId"
         ]
       }
     },
