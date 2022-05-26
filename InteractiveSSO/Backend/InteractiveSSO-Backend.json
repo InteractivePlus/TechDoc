@@ -1156,7 +1156,7 @@
               }
             }
           },
-          "description": "`perferredMethod` Defaults to SMS"
+          "description": "`preferredMethod` Defaults to SMS"
         }
       }
     },
@@ -2966,7 +2966,7 @@
           2,
           3
         ],
-        "description": "|Value|Meaning|\n|-|-|\n|0|Unknown/Not Communicated|\n|1|SMS|\n|2|Email|\n|3|Phone Call|"
+        "description": "Used to indicate preference/result method of communication, default to SMS for preference.\n|Value|Meaning|\n|-|-|\n|0|Unknown/Not Communicated|\n|1|SMS|\n|2|Email|\n|3|Phone Call|"
       },
       "CommunicationMethodPhoneOnly": {
         "type": "integer",
