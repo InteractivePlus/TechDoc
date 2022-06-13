@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "InteractiveSSO",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "summary": "InteractiveSSO API Definition",
     "description": "This is the api definition file for InteractivePlus's InteractiveSSO",
     "license": {
