@@ -153,22 +153,42 @@
         "operationId": "search-users",
         "responses": {
           "200": {
-            "description": "Successful.   \nEvery field would be present.   \nNote that permission and setting-wise, it will only display the user's custom settings (some values might be null)",
+            "description": "Successful.   \n\n---\n\nNote that permission and setting-wise, if admin mode, it will only display the user's custom settings (some values might be null or empty)",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
+                  "type": "object",
                   "description": "This can be empty tho...if nothing is found",
-                  "items": {
-                    "oneOf": [
-                      {
-                        "$ref": "#/components/schemas/BasicUserInfo"
-                      },
-                      {
-                        "$ref": "#/components/schemas/CompleteUserInfo"
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/BasicUserInfo"
+                          },
+                          {
+                            "$ref": "#/components/schemas/CompleteUserInfo"
+                          }
+                        ]
                       }
-                    ]
-                  }
+                    },
+                    "totalDataCount": {
+                      "type": "integer",
+                      "description": "Total number of data available given the query limit (ignores the limit and offset parameter)",
+                      "minimum": 0
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "description": "Gives offset of the current \"data\" field",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "totalDataCount",
+                    "offset"
+                  ]
                 }
               }
             }
@@ -860,6 +880,160 @@
         "description": "Renew user token. User Client is checked heavily."
       }
     },
+    "/usersystem/groups": {
+      "get": {
+        "summary": "Admin List/Search User Group",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalDataCount": {
+                      "type": "integer",
+                      "description": "Total number of data available given the query limit (ignores the limit and offset parameter)",
+                      "minimum": 0
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Gives offset of the current \"data\" field"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserGroup"
+                      }
+                    }
+                  },
+                  "required": [
+                    "totalDataCount",
+                    "offset",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "admin-list-user-group",
+        "description": "Admin Lists/Searches User Groups",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "in": "query",
+            "name": "displayNamePartial",
+            "description": "Partial Display Name to be Searched"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minLength": 0,
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "limit",
+            "description": "limit on number of results (if empty then there would be no limit for admin or some default limit for normal user)"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          }
+        ]
+      }
+    },
+    "/usersystem/groups/{groupid}": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "groupid",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "summary": "Admin Viewing Group Info",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/UserGroup"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "admin-view-user-group-info",
+        "description": "",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ]
+      }
+    },
     "/usersystem/verification/verifyEmail": {
       "get": {
         "summary": "Verify User Email Address",
@@ -1473,17 +1647,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "oneOf": [
-                      {
-                        "$ref": "#/components/schemas/AdvancedAppInfo"
-                      },
-                      {
-                        "$ref": "#/components/schemas/CompleteAppInfo"
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/AdvancedAppInfo"
+                          },
+                          {
+                            "$ref": "#/components/schemas/CompleteAppInfo"
+                          }
+                        ]
                       }
-                    ]
-                  }
+                    },
+                    "totalDataCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Total number of data available given the query limit (ignores the limit and offset parameter)"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Gives offset of the current \"data\" field"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "totalDataCount",
+                    "offset"
+                  ]
                 }
               }
             }
@@ -2000,6 +2194,159 @@
         ]
       }
     },
+    "/appsystem/groups": {
+      "get": {
+        "summary": "Admin List / Search Application Groups",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalDataCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Total number of data available given the query limit (ignores the limit and offset parameter)"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "description": "Gives offset of the current \"data\" field",
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AppGroup"
+                      }
+                    }
+                  },
+                  "required": [
+                    "totalDataCount",
+                    "offset",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "admin-list-app-groups",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "in": "query",
+            "name": "displayNamePartial",
+            "description": "Partial Display Name to be Searched"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minLength": 0,
+              "minimum": 0
+            },
+            "in": "query",
+            "name": "limit",
+            "description": "limit on number of results (if empty then there would be no limit for admin or some default limit for normal user)"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "description": "if not set, this would default to 0. Negative values mean query from the back (-1 means start from the last element)"
+          }
+        ]
+      }
+    },
+    "/appsystem/groups/{groupid}": {
+      "get": {
+        "summary": "Admin Read Application Group Info",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/AppGroup"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "admin-view-app-group-info",
+        "description": "",
+        "security": [
+          {
+            "oauth": []
+          },
+          {
+            "userToken": []
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "groupid",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/authorizations": {
       "get": {
         "summary": "Your GET endpoint",
@@ -2012,15 +2359,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "authorizations": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/OAuthRecord"
                       }
+                    },
+                    "totalDataCount": {
+                      "type": "integer",
+                      "description": "Total number of data available given the query limit (ignores the limit and offset parameter)"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "description": "Gives offset of the current \"data\" field"
                     }
                   },
                   "required": [
-                    "authorizations"
+                    "data",
+                    "totalDataCount",
+                    "offset"
                   ]
                 }
               }
@@ -2595,7 +2952,7 @@
                     },
                     "refresh_token": {
                       "type": "string",
-                      "description": "optional in the specs, but will definitely be given in SSO service",
+                      "description": "optional in the specs, but will definitely be given in SSO service. Refresh_token will not be given if the token is granted by client credentials.",
                       "minLength": 128,
                       "maxLength": 128
                     },
@@ -2610,8 +2967,7 @@
                   "required": [
                     "access_token",
                     "token_type",
-                    "expires_in",
-                    "refresh_token"
+                    "expires_in"
                   ]
                 },
                 "examples": {}
@@ -2696,7 +3052,7 @@
                   },
                   "scope": {
                     "type": "array",
-                    "description": "Scopes. This will only be considered if `grant_type` is`refresh_token`. \nOptional in the specification.\nIf using `client_credentials`, we don't have specific scopes to set because permission control is integrated into the app system.\nIf using `refresh_token`, the new scopes should not exceed what previous grant had given, and omitting means to maintain the original scopes.",
+                    "description": "Scopes. This will only be considered if `grant_type` is`refresh_token`. \nOptional in the specification.\nIf using `client_credentials`, we don't have specific scopes to set because permission control is integrated into the app system, you can leave this blank.\nIf using `refresh_token`, the new scopes should not exceed what previous grant had given, and omitting means to maintain the original scopes.",
                     "items": {
                       "type": "string"
                     }
@@ -3658,8 +4014,7 @@
             "type": [
               "string",
               "integer"
-            ],
-            "description": "Required if `grant_type` is `authorization_code`"
+            ]
           },
           "scope": {
             "type": "array",
@@ -3675,7 +4030,8 @@
           }
         },
         "required": [
-          "appId"
+          "appId",
+          "uid"
         ]
       }
     },
