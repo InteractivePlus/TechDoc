@@ -200,10 +200,24 @@
             "description": "Unauthorized\n(When client offers no authorization)"
           },
           "403": {
-            "description": "Forbidden\n(When credential provided by client does not have admin permission / permission to user to perform this action...)"
+            "description": "Forbidden (When the user doesn't have permission to do admin operation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows user/admins to search users",
@@ -263,7 +277,7 @@
           {
             "schema": {
               "type": "boolean",
-              "default": "false"
+              "default": false
             },
             "in": "query",
             "name": "admin",
@@ -318,10 +332,24 @@
             "description": "Unauthorized\n\n1. Consider Prompt Login\n2. Consider Refresh Token"
           },
           "404": {
-            "description": "Not Found (UID not Found)"
+            "description": "Not Found (UID not Found)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "get-user-info",
@@ -340,7 +368,7 @@
           {
             "schema": {
               "type": "boolean",
-              "default": "false"
+              "default": false
             },
             "in": "query",
             "name": "admin",
@@ -349,7 +377,7 @@
         ]
       },
       "patch": {
-        "summary": "Edit User Info",
+        "summary": "Self/Admin Edit User Info",
         "operationId": "edit-user-info",
         "responses": {
           "200": {
@@ -381,34 +409,55 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "409": {
             "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "conflictItems": {
-                      "type": "array",
-                      "description": "What item is already in the system?",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "email",
-                          "phone",
-                          "displayName"
-                        ]
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "conflictItems": {
+                          "type": "array",
+                          "description": "What item is already in the system?",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone",
+                              "displayName"
+                            ]
+                          }
+                        }
                       }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorWithMessage"
                     }
-                  }
+                  ]
                 }
               }
             }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "Edit User Info",
@@ -534,10 +583,24 @@
             "description": "Unauthorized"
           },
           "409": {
-            "description": "Conflict (When the new email is already been used in the system elsewhere)"
+            "description": "Conflict (When the new email is already been used in the system elsewhere)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint accepts a captcha generated by the /usersystem/verification/changeEmail endpoint and changes user's email.   \nIt also **triggers a new verification email to the new email address on success**\n\n---\n\nAdmin Alternatives:\nUse PATCH `/usersystem/users/{uid}` API",
@@ -617,10 +680,24 @@
             "description": "Unauthorized"
           },
           "409": {
-            "description": "Conflict (When the new phone number is already been used in the system elsewhere)"
+            "description": "Conflict (When the new phone number is already been used in the system elsewhere)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint accepts a captcha generated by the /usersystem/verification/changePhone endpoint and changes user's phone.   \nIt also **triggers a new verification sms / call to the new phone number on success**\n\n---\n\nAdmin Alternatives:\nUse PATCH `/usersystem/users/{uid}` API",
@@ -688,7 +765,14 @@
             "description": "Unauthorized"
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This api allows user to change/reset password with verification code",
@@ -749,7 +833,14 @@
             "description": "Bad Request"
           },
           "403": {
-            "description": "Forbidden\n\n---\n\n1. User being forbidden by the system to login (usually set by admin for banning a user)"
+            "description": "Forbidden\n\n---\n\n1. User being forbidden by the system to login (usually set by admin for banning a user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "417": {
             "description": "Expectation Failed",
@@ -796,7 +887,14 @@
             }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -852,6 +950,29 @@
                       "$ref": "#/components/schemas/AdvancedUserInfo"
                     }
                   }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden\n\n---\n\n1. User being forbidden by the system to login (usually set by admin for banning a user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
                 }
               }
             }
@@ -925,10 +1046,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "admin-list-user-group",
@@ -1013,13 +1148,34 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "admin-view-user-group-info",
@@ -1069,10 +1225,24 @@
             "description": "Bad Request"
           },
           "403": {
-            "description": "Forbidden (Verification Code is WRONG)"
+            "description": "Forbidden (Verification Code is WRONG)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "verify-user-email",
@@ -1080,11 +1250,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "minLength": 3,
-              "maxLength": 50,
-              "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g",
-              "format": "email"
+              "type": "string"
             },
             "in": "query",
             "name": "verificationCode",
@@ -1173,10 +1339,24 @@
             "description": "Bad Request"
           },
           "403": {
-            "description": "Forbidden (Verification Code is WRONG)"
+            "description": "Forbidden (Verification Code is WRONG)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "verify-user-phone",
@@ -1305,7 +1485,14 @@
             "description": "Unauthorized"
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This API lets user request a verification code that changes the email of the account",
@@ -1364,7 +1551,14 @@
             "description": "Unauthorized"
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This API lets user request a verification code that changes the phone of the account",
@@ -1421,13 +1615,27 @@
             "description": "Bad Request"
           },
           "403": {
-            "description": "Forbidden\n\n---\n\nThis happens if the account is blocked, doesn't exist, etc.\n\nIf the account has at least one of phone/email verified, then the communication method that has already been verified will be given priority, instead of sending to the method given in the argument."
+            "description": "Forbidden\n\n---\n\nThis happens if the account is blocked, doesn't exist, etc.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
-        "description": "This endpoint acts as a point to send verification codes to reset or change user password.",
+        "description": "This endpoint acts as a point to send verification codes to reset or change user password.\n\nIf the account has at least one of phone/email verified, then the communication method that has already been verified will be given priority, instead of sending to the method given in the argument.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1486,7 +1694,14 @@
             "description": "Unauthorized"
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1544,7 +1759,14 @@
             "description": "Unauthorized"
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows app owner to request a change-owner verification code for his/her app",
@@ -1599,13 +1821,34 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden (If user is forbidden from creating apps)"
+            "description": "Forbidden (If user is forbidden from creating apps)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Conflict (DisplayName already exists in the system)"
+            "description": "Conflict (DisplayName already exists in the system)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows users to create new apps",
@@ -1689,10 +1932,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1752,7 +2009,7 @@
           {
             "schema": {
               "type": "boolean",
-              "default": "false"
+              "default": false
             },
             "in": "query",
             "name": "admin",
@@ -1811,10 +2068,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "get-app-info",
@@ -1831,7 +2102,7 @@
           {
             "schema": {
               "type": "boolean",
-              "default": "false"
+              "default": false
             },
             "in": "query",
             "name": "admin",
@@ -1853,10 +2124,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows admin users/apps and normal users to edit information about an app",
@@ -1958,10 +2243,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "Used by admins or app owners to delete an app, or app managers to leave app.",
@@ -2035,10 +2334,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint is for app owners to invite new managers to the list, or for user being invited to join the manager list.\n\nFor admin users/apps, use PATCH `/appsystem/apps/{appid}`",
@@ -2081,13 +2394,34 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found (Manager not found in the manager list)"
+            "description": "Not Found (Manager not found in the manager list)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint is for app owners to delete managers from the managing list\n\nFor admin users/apps, use PATCH `/appsystem/apps/{appid}`",
@@ -2155,10 +2489,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows an app-owner to transfer app ownership to a manager. The manager will be swapped to be the owner and the previous owner will be swapped to be a manager.\n\nAdmin Alternative: `PATCH` `/appsystem/apps/{appid}`",
@@ -2239,10 +2587,24 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "admin-list-app-groups",
@@ -2316,13 +2678,34 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "admin-view-app-group-info",
@@ -2349,7 +2732,7 @@
     },
     "/authorizations": {
       "get": {
-        "summary": "Your GET endpoint",
+        "summary": "Admin/User List Authorizations",
         "tags": [],
         "responses": {
           "200": {
@@ -2393,7 +2776,14 @@
             "description": "Forbidden"
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "list-authorization-records",
@@ -2410,7 +2800,7 @@
           {
             "schema": {
               "type": "boolean",
-              "default": "false"
+              "default": false
             },
             "in": "query",
             "name": "admin",
@@ -2497,21 +2887,42 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "authorization": {
-                      "$ref": "#/components/schemas/OAuthRecord"
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "authorization": {
+                          "$ref": "#/components/schemas/OAuthRecord"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorWithMessage"
                     }
-                  }
+                  ]
                 }
               }
             }
           },
           "404": {
-            "description": "Not Found\n\n---\n\nThis means authorization code not present. It should never happen since frontend have to always call `PUT /authorizations/{appid}/{uid}`"
+            "description": "Not Found\n\n---\n\nThis means authorization record not present. It should never happen since frontend have to always call `PUT /authorizations/{appid}/{uid}`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint is accessed by the frontend at endpoint `/oauth2/authorize`, after the frontend has created/edited an authorization record using `PUT /authorizations/{appid}/{uid}`, it should call this API to create an authorization code to return to the URL callback.\n\nLots of parameters should just be passed directly from frontend except for `scope`.",
@@ -2617,13 +3028,34 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "operationId": "get-oauth2-app-user-authorization-info",
@@ -2684,10 +3116,25 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows Frontend (on behalf of an normal user) at the endpoint `/oauth2/authorization` to communicate with the backend and establish new/edit old authorization towards an app.\n\nIt can also be used for an admin to create/edit authorization",
@@ -3112,6 +3559,19 @@
                   "required": [
                     "grant_type"
                   ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
                 }
               }
             }
@@ -4032,6 +4492,23 @@
         "required": [
           "appId",
           "uid"
+        ]
+      },
+      "ErrorWithMessage": {
+        "title": "ErrorWithMessage",
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error Message in en_US"
+          },
+          "localized_message": {
+            "type": "string",
+            "description": "Error message in language specified by query param or in `Accept-Language`"
+          }
+        },
+        "required": [
+          "message"
         ]
       }
     },
