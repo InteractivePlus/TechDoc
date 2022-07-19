@@ -3907,10 +3907,6 @@
             "type": "boolean",
             "description": "True if this user can be logged in normally if it is a valid user (any email or phone is verified)"
           },
-          "forceChangePassword": {
-            "type": "boolean",
-            "description": "Force user to change password next time he/she logs in?"
-          },
           "canManageSecurity": {
             "type": "boolean",
             "description": "True if the user can change his/her password, email, etc."
@@ -3940,7 +3936,6 @@
             "type": "object",
             "required": [
               "canLogin",
-              "forceChangePassword",
               "canManageSecurity",
               "canCreateApp",
               "canManageApp",
