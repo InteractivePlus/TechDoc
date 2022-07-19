@@ -289,11 +289,13 @@
     "/usersystem/users/{uid}": {
       "parameters": [
         {
-          "schema": {},
+          "schema": {
+            "type": "string"
+          },
           "name": "uid",
           "in": "path",
           "required": true,
-          "description": "int or string"
+          "description": "User Identifier"
         }
       ],
       "get": {
@@ -562,11 +564,13 @@
     "/usersystem/users/{uid}/email": {
       "parameters": [
         {
-          "schema": {},
+          "schema": {
+            "type": "string"
+          },
           "name": "uid",
           "in": "path",
           "required": true,
-          "description": "int or string"
+          "description": "User Identifier"
         }
       ],
       "patch": {
@@ -644,11 +648,13 @@
     "/usersystem/users/{uid}/phone": {
       "parameters": [
         {
-          "schema": {},
+          "schema": {
+            "type": "string"
+          },
           "name": "uid",
           "in": "path",
           "required": true,
-          "description": "int or string"
+          "description": "User Identifier"
         }
       ],
       "patch": {
@@ -748,7 +754,8 @@
           },
           "name": "account",
           "in": "path",
-          "required": true
+          "required": true,
+          "description": "Phone Number or Email"
         }
       ],
       "patch": {
@@ -868,10 +875,7 @@
                           "pattern": "/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/g"
                         },
                         "phone": {
-                          "type": [
-                            "string",
-                            "integer"
-                          ],
+                          "type": "string",
                           "description": "only given if user has phone given during registration.",
                           "format": "E164",
                           "pattern": "^\\+?[1-9]\\d{1,14}$"
@@ -984,6 +988,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "uid": {
+                    "type": "string",
+                    "description": "User Identifier"
+                  },
                   "refreshToken": {
                     "type": "string",
                     "minLength": 256,
@@ -992,6 +1000,7 @@
                   }
                 },
                 "required": [
+                  "uid",
                   "refreshToken"
                 ]
               }
@@ -1268,7 +1277,14 @@
             "description": "Created (Email sent)"
           },
           "400": {
-            "description": "Bad Request (request is bad or the email is already verified, or if the email is not in the system)"
+            "description": "Bad Request (request is bad or the email is already verified, or if the email is not in the system)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal Server Error"
@@ -1407,7 +1423,14 @@
             }
           },
           "400": {
-            "description": "Bad Request (request is bad or the phone is already verified, or if the phone is not in the system)"
+            "description": "Bad Request (request is bad or the phone is already verified, or if the phone is not in the system)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal Server Error",
@@ -1645,7 +1668,8 @@
                   "account": {
                     "type": "string",
                     "format": "E164/email",
-                    "pattern": "(^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$)|(^\\+?[1-9]\\d{1,14}$)"
+                    "pattern": "(^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$)|(^\\+?[1-9]\\d{1,14}$)",
+                    "description": "Phone or meail"
                   },
                   "preferredMethod": {
                     "$ref": "#/components/schemas/CommunicationMethod"
@@ -2992,11 +3016,13 @@
           "required": true
         },
         {
-          "schema": {},
+          "schema": {
+            "type": "string"
+          },
           "name": "uid",
           "in": "path",
           "required": true,
-          "description": "int/string"
+          "description": "User Identifier"
         }
       ],
       "get": {
@@ -3197,13 +3223,34 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal Server Error"
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorWithMessage"
+                }
+              }
+            }
           }
         },
         "description": "This endpoint allows Frontend (on behalf of an normal user) to communicate with the backend and establish new/edit old authorization towards an app.\nThis endpoint can also be used by apps to freeze/delete an authorization.\n\nIt can also be used for an admin to freeze/delete authorization",
@@ -3641,10 +3688,7 @@
         "description": "Basic User Model (A user read by other user/app)",
         "properties": {
           "uid": {
-            "type": [
-              "string",
-              "integer"
-            ],
+            "type": "string",
             "description": "Unique identifier for the given user.",
             "readOnly": true
           },
@@ -3770,10 +3814,7 @@
             "type": "object",
             "properties": {
               "groupId": {
-                "type": [
-                  "string",
-                  "integer"
-                ],
+                "type": "string",
                 "description": "The groupId that this user belongs to"
               },
               "email": {
@@ -4007,10 +4048,7 @@
         "description": "Group Container for Users",
         "properties": {
           "groupId": {
-            "type": [
-              "string",
-              "integer"
-            ],
+            "type": "string",
             "description": "GroupID by this group"
           },
           "displayName": {
@@ -4141,10 +4179,7 @@
             "type": "object",
             "properties": {
               "groupId": {
-                "type": [
-                  "string",
-                  "integer"
-                ],
+                "type": "string",
                 "description": "The groupId that this app belongs to"
               },
               "appSecret": {
@@ -4152,30 +4187,21 @@
                 "description": "Secret for the app, acts like the password for API authentication"
               },
               "ownerUid": {
-                "type": [
-                  "string",
-                  "integer"
-                ],
+                "type": "string",
                 "description": "User UID of the owner of this APP"
               },
               "managerUidList": {
                 "type": "array",
                 "description": "List of managers uids that are currently managing this app",
                 "items": {
-                  "type": [
-                    "string",
-                    "integer"
-                  ]
+                  "type": "string"
                 }
               },
               "pendingManagerUidList": {
                 "type": "array",
                 "description": "List of manager uids that have not accepted the invitation to manage this app",
                 "items": {
-                  "type": [
-                    "string",
-                    "integer"
-                  ]
+                  "type": "string"
                 }
               },
               "permission": {
@@ -4346,10 +4372,7 @@
         "description": "Group Container for Apps",
         "properties": {
           "groupId": {
-            "type": [
-              "string",
-              "integer"
-            ],
+            "type": "string",
             "description": "GroupID by this group"
           },
           "displayName": {
@@ -4471,10 +4494,7 @@
             "type": "string"
           },
           "uid": {
-            "type": [
-              "string",
-              "integer"
-            ]
+            "type": "string"
           },
           "scope": {
             "type": "array",
