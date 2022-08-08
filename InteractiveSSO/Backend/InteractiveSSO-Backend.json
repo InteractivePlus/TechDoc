@@ -4475,10 +4475,10 @@
         "title": "OAuthScope",
         "description": "This model describes all possible scopes",
         "enum": [
-          "basic-info",
-          "send-email",
-          "send-sms",
-          "send-phone"
+          "basic_info",
+          "send_email",
+          "send_sms",
+          "send_phone"
         ]
       },
       "OAuthRecord": {
